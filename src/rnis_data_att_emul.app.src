@@ -1,0 +1,12 @@
+{application, rnis_data_att_emul,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { rnis_data_att_emul_app, []}},
+  {env, []}
+ ]}.
