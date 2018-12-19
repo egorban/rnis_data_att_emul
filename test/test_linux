@@ -1,1 +1,1 @@
-erl  -pa ../ebin -config dev.config -args_file vm.args
+erl  -pa ../ebin -config dev.config -args_file vm.args -name test@10.1.116.46
