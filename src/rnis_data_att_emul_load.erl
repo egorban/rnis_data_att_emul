@@ -93,6 +93,5 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 load_atts()->
-	[1,2,3,4,5].
-	%rpc:call(?NODE,mnesia,dirty_all_keys,[]).
+	rpc:call(?NODE,mnesia,dirty_all_keys,[att_descr]).
 	
