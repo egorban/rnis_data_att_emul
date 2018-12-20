@@ -65,7 +65,7 @@ handle_call(Request, _From, #state{lastAddTime=LastAddTime} = State) ->
 
 % Отправка данных по таймауту
 handle_info(timeout, #state{buffer=Buffer} = State) -> 
-	lager:info("Timeout send data length ~p", [length(Data)]),
+	lager:info("Timeout send data length ~p", [length(Buffer)]),
     {noreply, send_data(State)};
 % События завершения сендеров
 handle_info({'DOWN', Ref, process, Pid, normal}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) -> 
