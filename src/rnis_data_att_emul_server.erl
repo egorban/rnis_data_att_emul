@@ -55,18 +55,17 @@ handle_cast(Msg, #state{lastAddTime=LastAddTime} = State) ->
     {noreply, State, get_timeout(LastAddTime)}.
 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State)  when Counter >= ?BUFF_SIZE ->
-	lager:info("Add Data length ~p, Counter ~p", [length(Data), Counter]),
+	lager:info("Send Data length ~p", [length(Data)]),
 	{reply, ok, send_data(State#state{buffer=[Data|Buffer]})}; 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State) -> 
-	lager:info("Add Data length ~p, Counter ~p", [length(Data), Counter]),
 	{reply, ok, State#state{counter=Counter+1, lastAddTime=erlang:now(), buffer=[Data|Buffer]}, ?TIMEOUT};
 handle_call(Request, _From, #state{lastAddTime=LastAddTime} = State) ->
 	lager:info("Unknown call Request ~p", [Request]),
     {reply, ok, State, get_timeout(LastAddTime)}.
 
 % Отправка данных по таймауту
-handle_info(timeout, State) -> 
-	lager:info("Timeout send data", []),
+handle_info(timeout, #state{buffer=Buffer} = State) -> 
+	lager:info("Timeout send data length ~p", [length(Data)]),
     {noreply, send_data(State)};
 % События завершения сендеров
 handle_info({'DOWN', Ref, process, Pid, normal}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) -> 
