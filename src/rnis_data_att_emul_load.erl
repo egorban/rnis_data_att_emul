@@ -38,54 +38,43 @@ get_atts()->
 %%%===================================================================
 
 init([]) ->
-	io:format("rnis_data_att_emul_load init~n"),
 	{ok, #state{}, 0}.
 
 handle_call(reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
-	io:format("rnis_data_att_emul_load handle_call1~n"),
 	timer:cancel(Ref),
 	Atts = load_atts(),
   	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
   	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
   	{reply, ok, State#state{atts = Atts, timer_ref = NewRef}};
 handle_call(handle_reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
-	io:format("rnis_data_att_emul_load 2~n"),
 	Atts = load_atts(),
   	{reply, ok, State#state{atts = Atts}};
 handle_call(get_atts,_From,#state{atts = Atts}=State)->
-	io:format("rnis_data_att_emul_load handle_call3~n"),
   	{reply, {ok,Atts}, State};
 handle_call(_Request, _From, State) ->
-	io:format("rnis_data_att_emul_load handle_call4~n"),
   	{reply, ok, State}.
 
 handle_cast(_Msg, State) ->
-	io:format("rnis_data_att_emul_load handle_cast~n"),
   	{noreply, State}.
 
 handle_info(timeout, State) ->
-	io:format("rnis_data_att_emul_load handle_info1~n"),
 	Atts = load_atts(),
   	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
   	{ok,Ref} = timer:send_after(ReloadTimeout, reload),
 	{noreply, State#state{atts = Atts, timer_ref = Ref}};
 handle_info(reload, #state{timer_ref = Ref}=State) ->
-	io:format("rnis_data_att_emul_load init handle_info2~n"),
 	timer:cancel(Ref),
 	Atts = load_atts(),
 	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
 	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
 	{noreply, State#state{atts = Atts, timer_ref = NewRef}};
 handle_info(_Info, State) ->
-	io:format("rnis_data_att_emul_load handle_info3~n"),
 	{noreply, State}.
 
 terminate(_Reason, _State) ->
-	io:format("rnis_data_att_emul_load terminate~n"),
 	ok.
 
 code_change(_OldVsn, State, _Extra) ->
-	io:format("rnis_data_att_emul_load code_change~n"),
 	{ok, State}.
 
 %% ====================================================================

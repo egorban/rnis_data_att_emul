@@ -38,54 +38,44 @@ stop()->
 %%%===================================================================
 
 init([]) ->
-	io:format("rnis_data_att_emul_generate init~n"),
 	{ok, #state{}, 0}.
 
 handle_call(_Request, _From, State) ->
-	io:format("rnis_data_att_emul_generate handle_call~n"),
     {reply, ok, State}.
 
 handle_cast(_Msg, State) ->
-	io:format("rnis_data_att_emul_generate handle_cast~n"),
     {noreply, State}.
 
 handle_info(timeout, State) ->
-	io:format("rnis_data_att_emul_generate handle_info1~n"),
 	case whereis(rnis_data_att_emul_load) of
 		undefined ->
 			{noreply, State,?WAIT_INIT};
 		_ ->
 			{ok,Atts} = rnis_data_att_emul_load:get_atts(),
-			io:format("rnis_data_att_emul_generate length(Atts) ~p~n",[length(Atts)]),
 			data_flow(?FUN_TO_SEND,Atts),
 			TimePeriod = application:get_env(rnis_data_att_emul,timePeriod, ?TIMEPERIOD),
 			{ok,TRef} = timer:send_after(TimePeriod, generate),
 			{noreply, State#state{timer_ref=TRef}}
 	end;
 handle_info(generate, #state{timer_ref=TRef}=State) ->
-	io:format("rnis_data_att_emul_generate handle_info2~n"),
 	timer:cancel(TRef),
 	case whereis(rnis_data_att_emul_load) of
 		undefined ->
 			{noreply, State,?WAIT_INIT};
 		_ ->
 			{ok,Atts} = rnis_data_att_emul_load:get_atts(),
-			io:format("rnis_data_att_emul_generate length(Atts) ~p~n",[length(Atts)]),
 			data_flow(?FUN_TO_SEND,Atts),
 			TimePeriod = application:get_env(rnis_data_att_emul,timePeriod, ?TIMEPERIOD),
-			{ok,TRef} = timer:send_after(TimePeriod, generate),
-			{noreply, State#state{timer_ref=TRef}}
+			{ok,NewTRef} = timer:send_after(TimePeriod, generate),
+			{noreply, State#state{timer_ref=NewTRef}}
 	end;
 handle_info(_Info, State) ->
-	io:format("rnis_data_att_emul_generate handle_info3~n"),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-	io:format("rnis_data_att_emul_generate terminate~n"),
 	ok.
 
 code_change(_OldVsn, State, _Extra) ->
-	io:format("rnis_data_att_emul_generate code_change~n"),
 	{ok, State}.
 
 %% ====================================================================

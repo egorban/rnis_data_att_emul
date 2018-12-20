@@ -16,6 +16,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
+	lager:info("rnis_data_att_sup"),
     RestartStrategy = one_for_all,
     MaxRestarts = 5,
     MaxSecondsBetweenRestarts = 10,

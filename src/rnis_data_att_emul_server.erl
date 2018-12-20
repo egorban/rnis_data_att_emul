@@ -41,49 +41,37 @@ add_data(Data) when is_tuple(Data)->
 %%%===================================================================
 
 init([]) -> 
-	io:format("rnis_data_att_emul_server init~n"),
 	Host = application:get_env(rnis_data_att_emul, rnis_connection_host,?HOST),
   	Port = application:get_env(rnis_data_att_emul, rnis_connection_port,?PORT),
 	{ok, Socket} = get_socket(Host, Port, 0), 
-	io:format("rnis_data_att_emul_server {Host,Port,Socket}~p~n",[{Host,Port,Socket}]),
 	{ok, #state{host = Host, port = Port, socket=Socket}}.
 
 handle_cast(stop, State) -> 
-	io:format("rnis_data_att_emul_server handle_cast1~n"),
 	{stop, normal, State};
 handle_cast(_Msg, #state{lastAddTime=LastAddTime} = State) ->
-	io:format("rnis_data_att_emul_server handle_cast2~n"),
     {noreply, State, get_timeout(LastAddTime)}.
 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State)  when Counter >= ?BUFF_SIZE ->
-	io:format("rnis_data_att_emul_server handle_call1~n"),
 	{reply, ok, send_data(State#state{buffer=[Data|Buffer]})}; 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State) -> 
-	io:format("rnis_data_att_emul_server handle_call2~n"),
 	{reply, ok, State#state{counter=Counter+1, lastAddTime=erlang:now(), buffer=[Data|Buffer]}, ?TIMEOUT};
 handle_call(_Request, _From, #state{lastAddTime=LastAddTime} = State) ->
-	io:format("rnis_data_att_emul_server handle_call3~n"),
     {reply, ok, State, get_timeout(LastAddTime)}.
 
 % Отправка данных по таймауту
 handle_info(timeout, State) -> 
-	io:format("rnis_data_att_emul_server handle_info1~n"),
     {noreply, send_data(State)};
 % События завершения сендеров
 handle_info({'DOWN', Ref, process, Pid, normal}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) -> 
-	io:format("rnis_data_att_emul_server handle_info2~n"),
 	NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
 	NewTimeout = get_timeout(LastAddTime),
 	{noreply, NewState, NewTimeout};
 handle_info({'DOWN', Ref, process, Pid, Reason}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) ->
-	io:format("rnis_data_att_emul_server handle_info3~n"),
-	io:format("handle_info: ~p State:~p~n", [{'DOWN', Ref, process, Pid, Reason}, State]), %% ошибка в send процессе
     NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
 	NewTimeout = get_timeout(LastAddTime), 
 	{noreply, NewState, NewTimeout};
 % Закрытие сокета
 handle_info({tcp_closed, Socket}, #state{host=Host, port=Port, lastAddTime=LastAddTime} = State) -> 
-	io:format("rnis_data_att_emul_server handle_info4~n"),
 	gen_tcp:close(Socket),
 	{ok, NewSocket} = get_socket(Host, Port, 0),
 	NewState = State#state{socket=NewSocket}, 
@@ -91,35 +79,27 @@ handle_info({tcp_closed, Socket}, #state{host=Host, port=Port, lastAddTime=LastA
 	{noreply, NewState, NewTimeout};
 % Входящее tcp сообщение
 handle_info({tcp, _Socket, Msg}, #state{lastAddTime=LastAddTime} = State) -> 
-	io:format("rnis_data_att_emul_server handle_info5~n"),
-	io:format("TCP: ~p~n", [Msg]), %% Сообщение из облака
 	NewTimeout = get_timeout(LastAddTime),
     {noreply, State, NewTimeout};
 handle_info(_Info, #state{lastAddTime=LastAddTime} = State) ->
-	io:format("rnis_data_att_emul_server handle_info6~n"),
 	NewTimeout = get_timeout(LastAddTime),
     {noreply, State, NewTimeout}.
 
 terminate(normal, #state{socket=Socket, sProcesses=[]}) -> 
-	io:format("rnis_data_att_emul_server terminate1~n"),
 	gen_tcp:close(Socket),
     ok;
 terminate(normal, #state{socket=Socket, sProcesses=SProcesses}) -> 
-	io:format("rnis_data_att_emul_server terminate2~n"),
 	timer:sleep(?TERMINATE_TIMEOUT),
 	[kill_incomplete(Proc) || Proc <- SProcesses],
 	gen_tcp:close(Socket),
 	ok;
 terminate(Reason, #state{socket=Socket, sProcesses=SProcesses}) -> 
-	io:format("rnis_data_att_emul_server terminate3~n"),
-	io:format("terminate: ~p~n", [Reason]), %% Ненормальное завершение
 	timer:sleep(?TERMINATE_TIMEOUT),
 	[kill_incomplete(Proc) || Proc <- SProcesses],
 	gen_tcp:close(Socket),
 	ok.
 
 code_change(_OldVsn, State, _Extra) ->
-	io:format("rnis_data_att_emul_server code_change~n"),
     {ok, State}.
  
 
@@ -133,8 +113,6 @@ get_socket(Host, Port, Attempt) when Attempt<?NUMBER_OF_ATTEMPTS ->
 		{ok, Socket} -> 
 			{ok, Socket};
 		Error -> 
-			io:format("try connect, Error ~p~n",[Error]),
-			io:format("~p attempt to connect to ~p:~p~n", [Attempt, Host, Port]),
 			timer:sleep(?ATTEMPT_TIMEOUT), 
 			get_socket(Host, Port, Attempt+1)
 	end.
@@ -151,10 +129,8 @@ get_timeout(LastAdd) ->
 	end.
 
 send_data(#state{buffer=[]} = State) -> 
-	io:format("send_data1~n",[]),
     State;
 send_data(#state{socket=Socket, egtsPacketId=PackID, egtsRecordId=RecId, buffer=Buffer, sProcesses=SProcesses} = State) -> 
-	io:format("send_data2 Buffer ~p~n",[Buffer]),
 	{Pid, Ref} = spawn_monitor(?MODULE, transmit_data, [Socket, PackID, RecId, Buffer]), 
     State#state{
 				counter=1, 
@@ -174,11 +150,10 @@ transmit_data(Socket, PackID, RecId, [HBuffer|TBuffer]) ->
 		        ok -> 
 					transmit_data(Socket, NewPackID, NewRecId, TBuffer);
 		        {error,closed} -> 
-					io:format("socket closed~n") %%%
+					ok
             end
 	catch 
 		error:ErrType -> 
-			io:format("error:~p in ~p:form_packet(~p, ~p, ~p)~n", [ErrType, ?MODULE, PackID, RecId, HBuffer]), %%%
 			NewPackID = PackID+1 band 16#ffff,
 			NewRecId = RecId + length(HBuffer),
 	        transmit_data(Socket, NewPackID, NewRecId, TBuffer)
@@ -189,12 +164,10 @@ kill_incomplete({Pid, Ref}) ->
     receive 
         {'DOWN', Ref, process, Pid, normal} -> ok;
         {'DOWN', Ref, process, Pid, Reason} -> 
-            io:format("Abnormal exit ~p with reason ~p~n", [Pid, Reason]), %%%
             error
     after 
         0 -> 
 		    exit(Pid, kill),
-		    io:format("Kill sender process:~p~n", [Pid]), %%%
             killed
     end.
 			
