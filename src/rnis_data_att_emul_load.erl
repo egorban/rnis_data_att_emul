@@ -43,7 +43,7 @@ init([]) ->
 handle_call(reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
 	timer:cancel(Ref),
 	Atts = load_atts(),
-	lager:info("Reloaded Atts", [length(Atts)]),
+	lager:info("Reloaded Atts ~p", [length(Atts)]),
   	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
   	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
   	{reply, ok, State#state{atts = Atts, timer_ref = NewRef}};
@@ -67,7 +67,7 @@ handle_info(timeout, State) ->
 handle_info(reload, #state{timer_ref = Ref}=State) ->
 	timer:cancel(Ref),
 	Atts = load_atts(),
-	lager:info("Reloaded Atts", [length(Atts)]),
+	lager:info("Reloaded Atts ~p", [length(Atts)]),
 	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
 	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
 	{noreply, State#state{atts = Atts, timer_ref = NewRef}};
