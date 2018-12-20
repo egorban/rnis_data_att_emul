@@ -1,8 +1,8 @@
 ## Name of the node
--name rnis_data_att_emul@127.0.0.1
+-name rnis_data_att_emul@10.1.116.46
 
 ## Cookie for distributed erlang
--setcookie rnis_data_att_emul
+-setcookie rnis
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
 ## (Disabled by default..use with caution!)

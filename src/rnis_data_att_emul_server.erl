@@ -43,35 +43,44 @@ add_data(Data) when is_tuple(Data)->
 init([]) -> 
 	Host = application:get_env(rnis_data_att_emul, rnis_connection_host,?HOST),
   	Port = application:get_env(rnis_data_att_emul, rnis_connection_port,?PORT),
+	lager:info("Connection params - ~p:~p", [Host, Port]),
 	{ok, Socket} = get_socket(Host, Port, 0), 
 	{ok, #state{host = Host, port = Port, socket=Socket}}.
 
 handle_cast(stop, State) -> 
+	lager:info("Stop Msg", []),
 	{stop, normal, State};
-handle_cast(_Msg, #state{lastAddTime=LastAddTime} = State) ->
+handle_cast(Msg, #state{lastAddTime=LastAddTime} = State) ->
+	lager:info("Unknown cast Msg ~p", [Msg]),
     {noreply, State, get_timeout(LastAddTime)}.
 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State)  when Counter >= ?BUFF_SIZE ->
+	lager:info("Add Data length ~p, Counter ~p", [length(Data), Counter]),
 	{reply, ok, send_data(State#state{buffer=[Data|Buffer]})}; 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State) -> 
+	lager:info("Add Data length ~p, Counter ~p", [length(Data), Counter]),
 	{reply, ok, State#state{counter=Counter+1, lastAddTime=erlang:now(), buffer=[Data|Buffer]}, ?TIMEOUT};
-handle_call(_Request, _From, #state{lastAddTime=LastAddTime} = State) ->
+handle_call(Request, _From, #state{lastAddTime=LastAddTime} = State) ->
+	lager:info("Unknown call Request ~p", [Request]),
     {reply, ok, State, get_timeout(LastAddTime)}.
 
 % Отправка данных по таймауту
 handle_info(timeout, State) -> 
+	lager:info("Timeout send data", []),
     {noreply, send_data(State)};
 % События завершения сендеров
 handle_info({'DOWN', Ref, process, Pid, normal}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) -> 
 	NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
 	NewTimeout = get_timeout(LastAddTime),
 	{noreply, NewState, NewTimeout};
-handle_info({'DOWN', Ref, process, Pid, Reason}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) ->
+handle_info({'DOWN', Ref, process, Pid, Reason} = Info, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) ->
+	lager:error("handle_info: ~p State:~p", [Info, State]), %% ошибка в send процессе
     NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
 	NewTimeout = get_timeout(LastAddTime), 
 	{noreply, NewState, NewTimeout};
 % Закрытие сокета
 handle_info({tcp_closed, Socket}, #state{host=Host, port=Port, lastAddTime=LastAddTime} = State) -> 
+	lager:error("tcp_closed", []),
 	gen_tcp:close(Socket),
 	{ok, NewSocket} = get_socket(Host, Port, 0),
 	NewState = State#state{socket=NewSocket}, 
@@ -79,9 +88,11 @@ handle_info({tcp_closed, Socket}, #state{host=Host, port=Port, lastAddTime=LastA
 	{noreply, NewState, NewTimeout};
 % Входящее tcp сообщение
 handle_info({tcp, _Socket, Msg}, #state{lastAddTime=LastAddTime} = State) -> 
+	io:format("TCP: ~p", [Msg]), %% Сообщение из облака
 	NewTimeout = get_timeout(LastAddTime),
     {noreply, State, NewTimeout};
-handle_info(_Info, #state{lastAddTime=LastAddTime} = State) ->
+handle_info(Info, #state{lastAddTime=LastAddTime} = State) ->
+	lager:info("Unknown Info ~p", [Info]),
 	NewTimeout = get_timeout(LastAddTime),
     {noreply, State, NewTimeout}.
 
@@ -111,8 +122,10 @@ code_change(_OldVsn, State, _Extra) ->
 get_socket(Host, Port, Attempt) when Attempt<?NUMBER_OF_ATTEMPTS -> 
 	case gen_tcp:connect(Host, Port, ?TCP_OPTIONS) of 
 		{ok, Socket} -> 
+			lager:info("Connect to ~p:~p", [Host, Port]),
 			{ok, Socket};
 		Error -> 
+			lager:info("~p attempt to connect to ~p:~p", [Attempt, Host, Port]),
 			timer:sleep(?ATTEMPT_TIMEOUT), 
 			get_socket(Host, Port, Attempt+1)
 	end.

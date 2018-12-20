@@ -15,8 +15,8 @@
   terminate/2,
   code_change/3]).
 
--define(RELOAD_TIMEOUT, 60000).
--define(NODE, 'rnis@10.1.116.42').
+-define(RELOAD_TIMEOUT, 600000).
+-define(LOAD_NODE, 'rnis@10.1.116.42').
 
 -record(state, {atts = [], timer_ref}).
 
@@ -43,6 +43,7 @@ init([]) ->
 handle_call(reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
 	timer:cancel(Ref),
 	Atts = load_atts(),
+	lager:info("Reloaded Atts", [length(Atts)]),
   	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
   	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
   	{reply, ok, State#state{atts = Atts, timer_ref = NewRef}};
@@ -59,12 +60,14 @@ handle_cast(_Msg, State) ->
 
 handle_info(timeout, State) ->
 	Atts = load_atts(),
+	lager:info("Loaded Atts ~p", [length(Atts)]),
   	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
   	{ok,Ref} = timer:send_after(ReloadTimeout, reload),
 	{noreply, State#state{atts = Atts, timer_ref = Ref}};
 handle_info(reload, #state{timer_ref = Ref}=State) ->
 	timer:cancel(Ref),
 	Atts = load_atts(),
+	lager:info("Reloaded Atts", [length(Atts)]),
 	ReloadTimeout = application:get_env(rnis_data_att_emul,reload_atts_timeout, ?RELOAD_TIMEOUT),
 	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
 	{noreply, State#state{atts = Atts, timer_ref = NewRef}};
@@ -82,5 +85,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 load_atts()->
-	rpc:call(?NODE,mnesia,dirty_all_keys,[att_descr]).
+	LoadNode = application:get_env(rnis_data_att_emul,load_node, ?LOAD_NODE),
+	rpc:call(?LOAD_NODE,mnesia,dirty_all_keys,[att_descr]).
 	

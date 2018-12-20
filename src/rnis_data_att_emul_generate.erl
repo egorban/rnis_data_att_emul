@@ -14,7 +14,7 @@
 		 terminate/2,
 		 code_change/3]).
 
--define(TIMEPERIOD, 270000). %ms
+-define(TIMEPERIOD, 270000). %ms, 4.5 min
 -define(FUN_TO_SEND, fun rnis_data_att_emul_server:add_data/1).
 -define(WAIT_INIT, 1000). %ms
 
@@ -49,11 +49,12 @@ handle_cast(_Msg, State) ->
 handle_info(timeout, State) ->
 	case whereis(rnis_data_att_emul_load) of
 		undefined ->
+			lager:info("rnis_data_att_emul_load not starter", []),
 			{noreply, State,?WAIT_INIT};
 		_ ->
 			{ok,Atts} = rnis_data_att_emul_load:get_atts(),
 			data_flow(?FUN_TO_SEND,Atts),
-			TimePeriod = application:get_env(rnis_data_att_emul,timePeriod, ?TIMEPERIOD),
+			TimePeriod = application:get_env(rnis_data_att_emul,generate_period, ?TIMEPERIOD),
 			{ok,TRef} = timer:send_after(TimePeriod, generate),
 			{noreply, State#state{timer_ref=TRef}}
 	end;
@@ -61,11 +62,12 @@ handle_info(generate, #state{timer_ref=TRef}=State) ->
 	timer:cancel(TRef),
 	case whereis(rnis_data_att_emul_load) of
 		undefined ->
+			lager:info("rnis_data_att_emul_load not starter", []),
 			{noreply, State,?WAIT_INIT};
 		_ ->
 			{ok,Atts} = rnis_data_att_emul_load:get_atts(),
 			data_flow(?FUN_TO_SEND,Atts),
-			TimePeriod = application:get_env(rnis_data_att_emul,timePeriod, ?TIMEPERIOD),
+			TimePeriod = application:get_env(rnis_data_att_emul,generate_period, ?TIMEPERIOD),
 			{ok,NewTRef} = timer:send_after(TimePeriod, generate),
 			{noreply, State#state{timer_ref=NewTRef}}
 	end;
@@ -83,6 +85,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 
 data_flow(Fun, Atts)->
+	lager:info("Generate Data for ~p Atts", [length(Atts)]),
 	List = [{ID, system_time(millisec),
 			 [{<<"lat">>,rand_f(55,56)},{<<"lon">>,rand_f(37,38)},{<<"speed">>,rand_i(0,120)}]} 
 		   || ID <- Atts],
