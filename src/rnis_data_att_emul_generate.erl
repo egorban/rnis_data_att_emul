@@ -16,6 +16,8 @@
 		 terminate/2,
 		 code_change/3]).
 
+-include("rnis_data_att_emul.hrl").
+
 -record(state, {timer_ref}).
 
 %% ====================================================================

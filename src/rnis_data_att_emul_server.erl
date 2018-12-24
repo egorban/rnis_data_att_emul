@@ -4,7 +4,7 @@
 
 %% API
 -export([start_link/1, 
-		 stop/0,
+		 stop/1,
 		 add_data/1,
 		 transmit_data/4]).
 
@@ -18,7 +18,7 @@
 
 -record(state, {host, port, socket, counter = 1, lastAddTime, buffer = [], egtsPacketId = 0, egtsRecordId = 0,sProcesses = []}). 
 
--include("rnis_data_att_emul_server.hrl").
+-include("rnis_data_att_emul.hrl").
 
 %% ====================================================================
 %% API functions
@@ -35,7 +35,7 @@ stop(Port) ->
 
 add_data({_,[]}) -> 
     ok;
-add_data{{Name,Data}}  when is_tuple(Data) ->
+add_data({Name,Data})  when is_tuple(Data) ->
 	gen_server:call(Name, {add, [Data]}).
 %%%===================================================================
 %%% gen_server callbacks
