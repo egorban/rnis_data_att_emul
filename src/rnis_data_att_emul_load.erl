@@ -87,5 +87,5 @@ load_atts()->
 	LoadNode = application:get_env(rnis_data_att_emul,load_node, ?LOAD_NODE),
 	Atts = rpc:call(LoadNode,mnesia,dirty_select,[att_descr,[{{att_descr,'$1','$2','_','_','_'}, [], [['$1','$2']]}]]), 
 	% [[5632,{{'EGTS',<<"G">>},10119289}], [16414,{{'EGTS',<<"c">>},75569000}],...]
-	[E||{Id,Name}=E<-[{Id,proplists:get_value(Prefix,?PREFIX)}||[Id,{Prefix,_}]<-Atts],E=/=undefined].
+	[E||{Id,Name}=E<-[{Id,proplists:get_value(Prefix,?PREFIX)}||[Id,{Prefix,_}]<-Atts],Name=/=undefined].
 	
