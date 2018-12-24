@@ -4,6 +4,8 @@
 
 %% API
 -export([start_link/0,
+		 handle_generate/0,
+		 stop/0,
 		 data_flow/2]).
 
 %% gen_server callbacks
@@ -13,10 +15,6 @@
 		 handle_info/2,
 		 terminate/2,
 		 code_change/3]).
-
--define(TIMEPERIOD, 270000). %ms, 4.5 min
--define(FUN_TO_SEND, fun rnis_data_att_emul_server:add_data/1).
--define(WAIT_INIT, 1000). %ms
 
 -record(state, {timer_ref}).
 
@@ -30,8 +28,8 @@ start_link() ->
 stop()->
 	gen_server:cast(?MODULE, stop).
 
-%% handle_generate()->
-%% 	gen_server:cast(?MODULE, handle_generate).
+handle_generate()->
+ 	gen_server:cast(?MODULE, handle_generate).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -40,6 +38,16 @@ stop()->
 init([]) ->
 	{ok, #state{}, 0}.
 
+handle_call(handle_generate, _From, State) ->
+	case whereis(rnis_data_att_emul_load) of
+		undefined ->
+			lager:info("rnis_data_att_emul_load not starter", []),
+			{reply, not_generate, State};
+		_ ->
+			{ok,Atts} = rnis_data_att_emul_load:get_atts(),
+			data_flow(?FUN_TO_SEND,Atts),
+			{reply, ok, State}
+	end;
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -86,9 +94,9 @@ code_change(_OldVsn, State, _Extra) ->
 
 data_flow(Fun, Atts)->
 	lager:info("Generate Data for ~p Atts", [length(Atts)]),
-	List = [{ID, system_time(millisec),
-			 [{<<"lat">>,rand_f(55,56)},{<<"lon">>,rand_f(37,38)},{<<"speed">>,rand_i(0,120)}]} 
-		   || ID <- Atts],
+	List = [{Server,{ID, system_time(millisec),
+			 [{<<"lat">>,rand_f(55,56)},{<<"lon">>,rand_f(37,38)},{<<"speed">>,rand_i(0,120)}]}} 
+		   || {ID, Server} <- Atts],
 	lists:foreach(Fun, List).
 
 rand_f(Min,Max)->

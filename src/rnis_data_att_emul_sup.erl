@@ -24,13 +24,17 @@ init([]) ->
         rnis_data_att_emul_load,
         {rnis_data_att_emul_load, start_link, []},
         permanent, 5000, worker, [rnis_data_att_emul_load]},
-    EmulServer = {
+%% 	EmulServer = {
+%%         rnis_data_att_emul_server,
+%%         {rnis_data_att_emul_server, start_link, []},
+%%         permanent, 5000, worker, [rnis_data_att_emul_server]},
+    EmulServers = [{
         rnis_data_att_emul_server,
-        {rnis_data_att_emul_server, start_link, []},
-        permanent, 5000, worker, [rnis_data_att_emul_server]},
+        {rnis_data_att_emul_server, start_link, [[Port]]},
+        permanent, 5000, worker, [rnis_data_att_emul_server]}||Port<-?LISTEN_PORTS],
 	DataGenerate = {
         rnis_data_att_emul_generate,
         {rnis_data_att_emul_generate, start_link, []},
         permanent, 5000, worker, [rnis_data_att_emul_generate]},
-    ToStart = [AttsDataLoad, EmulServer,DataGenerate],
+    ToStart = [AttsDataLoad,DataGenerate|EmulServers],
     {ok, {SupFlags, ToStart}}.

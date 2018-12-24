@@ -15,9 +15,6 @@
   terminate/2,
   code_change/3]).
 
--define(RELOAD_TIMEOUT, 600000).
--define(LOAD_NODE, 'rnis@10.1.116.42').
-
 -record(state, {atts = [], timer_ref}).
 
 %% ====================================================================
@@ -86,5 +83,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 load_atts()->
 	LoadNode = application:get_env(rnis_data_att_emul,load_node, ?LOAD_NODE),
-	rpc:call(?LOAD_NODE,mnesia,dirty_all_keys,[att_descr]).
+	Atts = rpc:call(LoadNode,mnesia,dirty_select,[att_descr,[{{att_descr,'$1','$2','_','_','_'}, [], [['$1','$2']]}]]), 
+	% [[5632,{{'EGTS',<<"G">>},10119289}], [16414,{{'EGTS',<<"c">>},75569000}],...]
+	[{Id,proplists:get_value(Prefix,?PREFIX)}||[Id,{Prefix,_}]<-Atts].
 	

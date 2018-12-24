@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, 
+-export([start_link/1, 
 		 stop/0,
 		 add_data/1,
 		 transmit_data/4]).
@@ -16,6 +16,8 @@
 		 terminate/2, 
 		 code_change/3]).
 
+-record(state, {host, port, socket, counter = 1, lastAddTime, buffer = [], egtsPacketId = 0, egtsRecordId = 0,sProcesses = []}). 
+
 -include("rnis_data_att_emul_server.hrl").
 
 %% ====================================================================
@@ -23,26 +25,24 @@
 %% ====================================================================
 
 
-start_link()->
-    gen_server:start_link({local,?MODULE},?MODULE,[],[]).
+start_link([Port])->
+	Name = list_to_atom("att_emul_server_"++integer_to_list(Port)),
+    gen_server:start_link({local,Name},?MODULE,[Port],[]).
 
-stop() -> 
-	gen_server:cast(?MODULE, stop). 
+stop(Port) -> 
+	Name = list_to_atom("att_emul_server_"++integer_to_list(Port)),
+	gen_server:cast(Name, stop). 
 
-add_data([]) -> 
+add_data({_,[]}) -> 
     ok;
-add_data(Data) when is_list(Data) -> 
-    gen_server:call(?MODULE, {add, Data}); 
-add_data(Data) when is_tuple(Data)-> 
-	gen_server:call(?MODULE, {add, [Data]}).
-
+add_data{{Name,Data}}  when is_tuple(Data) ->
+	gen_server:call(Name, {add, [Data]}).
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
-init([]) -> 
+init([Port]) -> 
 	Host = application:get_env(rnis_data_att_emul, rnis_connection_host,?HOST),
-  	Port = application:get_env(rnis_data_att_emul, rnis_connection_port,?PORT),
 	lager:info("Connection params - ~p:~p", [Host, Port]),
 	{ok, Socket} = get_socket(Host, Port, 0), 
 	{ok, #state{host = Host, port = Port, socket=Socket}}.
@@ -131,12 +131,13 @@ get_socket(Host, Port, Attempt) when Attempt<?NUMBER_OF_ATTEMPTS ->
 get_timeout(undefined) -> 
     infinity;
 get_timeout(LastAdd) -> 
-	case timer:now_diff(erlang:now(), LastAdd) div 1000 of 
-		TimeDiff when 0 < TimeDiff andalso TimeDiff < ?TIMEOUT -> 
-			?TIMEOUT - TimeDiff;
-		_TimeDiff -> 
-			0		
-	end.
+	infinity.
+%% 	case timer:now_diff(erlang:now(), LastAdd) div 1000 of 
+%% 		TimeDiff when 0 < TimeDiff andalso TimeDiff < ?TIMEOUT -> 
+%% 			?TIMEOUT - TimeDiff;
+%% 		_TimeDiff -> 
+%% 			0		
+%% 	end.
 
 send_data(#state{buffer=[]} = State) -> 
     State;
