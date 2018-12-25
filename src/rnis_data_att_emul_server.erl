@@ -131,13 +131,12 @@ get_socket(Host, Port, Attempt) when Attempt<?NUMBER_OF_ATTEMPTS ->
 get_timeout(undefined) -> 
     infinity;
 get_timeout(LastAdd) -> 
-	infinity.
-%% 	case timer:now_diff(erlang:now(), LastAdd) div 1000 of 
-%% 		TimeDiff when 0 < TimeDiff andalso TimeDiff < ?TIMEOUT -> 
-%% 			?TIMEOUT - TimeDiff;
-%% 		_TimeDiff -> 
-%% 			0		
-%% 	end.
+	case timer:now_diff(erlang:now(), LastAdd) div 1000 of 
+		TimeDiff when 0 < TimeDiff andalso TimeDiff < ?TIMEOUT -> 
+			?TIMEOUT - TimeDiff;
+		_TimeDiff -> 
+			0		
+	end.
 
 send_data(#state{buffer=[]} = State) -> 
     State;

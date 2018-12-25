@@ -26,10 +26,6 @@ init([]) ->
         rnis_data_att_emul_load,
         {rnis_data_att_emul_load, start_link, []},
         permanent, 5000, worker, [rnis_data_att_emul_load]},
-%% 	EmulServer = {
-%%         rnis_data_att_emul_server,
-%%         {rnis_data_att_emul_server, start_link, []},
-%%         permanent, 5000, worker, [rnis_data_att_emul_server]},
     EmulServers = [{
         list_to_atom("att_emul_server_"++integer_to_list(Port)),
         {rnis_data_att_emul_server, start_link, [[Port]]},
