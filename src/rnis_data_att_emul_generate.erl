@@ -56,7 +56,7 @@ handle_call(handle_generate, _From, State) ->
 	end;
 handle_call({handle_generate,Id,Port}, _From, State) ->
 	data_flow(?FUN_TO_SEND,[{Id,list_to_atom("att_emul_server_"++integer_to_list(Port))}]),
-	{reply, ok, State}
+	{reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
