@@ -5,6 +5,7 @@
 %% API
 -export([start_link/0,
 		 handle_generate/0,
+		 handle_generate/1,
 		 stop/0,
 		 data_flow/2]).
 
@@ -33,6 +34,9 @@ stop()->
 handle_generate()->
  	gen_server:call(?MODULE, handle_generate).
 
+handle_generate({Id,Port})->
+ 	gen_server:call(?MODULE, {handle_generate,Id,Port}).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -50,6 +54,9 @@ handle_call(handle_generate, _From, State) ->
 			data_flow(?FUN_TO_SEND,Atts),
 			{reply, ok, State}
 	end;
+handle_call({handle_generate,Id,Port}, _From, State) ->
+	data_flow(?FUN_TO_SEND,[{Id,list_to_atom("att_emul_server_"++integer_to_list(Port))}]),
+	{reply, ok, State}
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
