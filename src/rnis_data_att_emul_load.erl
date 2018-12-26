@@ -47,6 +47,7 @@ handle_call(reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
   	{ok,NewRef} = timer:send_after(ReloadTimeout, reload),
   	{reply, ok, State#state{atts = Atts, timer_ref = NewRef}};
 handle_call(handle_reload,_From,#state{atts = Atts,timer_ref = Ref}=State)->
+	lager:info("Handel Reloaded Atts ~p", [length(Atts)]),
 	Atts = load_atts(),
   	{reply, ok, State#state{atts = Atts}};
 handle_call(get_atts,_From,#state{atts = Atts}=State)->
