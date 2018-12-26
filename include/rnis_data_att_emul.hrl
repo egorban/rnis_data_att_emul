@@ -88,7 +88,7 @@
 
 -define(TIMEPERIOD, 270000). % ms, 4.5 min
 -define(FUN_TO_SEND, fun rnis_data_att_emul_server:add_data/1).
--define(WAIT_INIT, 1000). %ms
+-define(WAIT_INIT, 5000). %ms
 
 %rnis_data_att_emul_load
 -define(RELOAD_TIMEOUT, 2*60*60*1000). % ms, 2 hour

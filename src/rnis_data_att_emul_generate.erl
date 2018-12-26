@@ -38,7 +38,7 @@ handle_generate()->
 %%%===================================================================
 
 init([]) ->
-	{ok, #state{}, 30000}.
+	{ok, #state{},?WAIT_INIT}.
 
 handle_call(handle_generate, _From, State) ->
 	case whereis(rnis_data_att_emul_load) of
