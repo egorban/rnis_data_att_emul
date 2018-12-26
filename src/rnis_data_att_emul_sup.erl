@@ -26,10 +26,10 @@ init([]) ->
         rnis_data_att_emul_load,
         {rnis_data_att_emul_load, start_link, []},
         permanent, 5000, worker, [rnis_data_att_emul_load]},
-    EmulServersSup = [{
+    EmulServers = [{
         rnis_data_att_emul_server_sup,
         {rnis_data_att_emul_server_sup, start_link, [[Port]]},
-        permanent, 5000, supervisor, [rnis_data_att_emul_server_sup]}||Port<-[P||{_,{_,P}}<-?PREFIX]],
+        permanent, 5000, worker, [rnis_data_att_emul_server_sup]}||Port<-[P||{_,{_,P}}<-?PREFIX]],
 	DataGenerate = {
         rnis_data_att_emul_generate,
         {rnis_data_att_emul_generate, start_link, []},
