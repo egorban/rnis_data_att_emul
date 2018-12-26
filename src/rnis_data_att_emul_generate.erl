@@ -31,7 +31,7 @@ stop()->
 	gen_server:cast(?MODULE, stop).
 
 handle_generate()->
- 	gen_server:cast(?MODULE, handle_generate).
+ 	gen_server:call(?MODULE, handle_generate).
 
 %%%===================================================================
 %%% gen_server callbacks
