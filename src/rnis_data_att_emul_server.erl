@@ -16,7 +16,7 @@
 		 terminate/2, 
 		 code_change/3]).
 
--record(state, {host, port, socket, counter = 1, lastAddTime, buffer = [], egtsPacketId = 0, egtsRecordId = 0,sProcesses = []}). 
+-record(state, {host, port, socket, counter = 0, buffer = [], egtsPacketId = 0, egtsRecordId = 0}). 
 
 -include("rnis_data_att_emul.hrl").
 
@@ -50,60 +50,37 @@ init([Port]) ->
 handle_cast(stop, State) -> 
 	lager:info("Stop Msg", []),
 	{stop, normal, State};
-handle_cast(Msg, #state{lastAddTime=LastAddTime} = State) ->
+handle_cast(Msg, State) ->
 	lager:info("Unknown cast Msg ~p", [Msg]),
-    {noreply, State, get_timeout(LastAddTime)}.
+    {noreply, State, ?TIMEOUT}.
 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State)  when Counter >= ?BUFF_SIZE ->
-	{reply, ok, send_data(State#state{buffer=[Data|Buffer]})}; 
+	{reply, ok, send_data(State#state{counter=Counter+1,buffer=[Data|Buffer]})}; 
 handle_call({add, Data}, _From, #state{counter=Counter, buffer=Buffer} = State) -> 
-	{reply, ok, State#state{counter=Counter+1, lastAddTime=erlang:now(), buffer=[Data|Buffer]}, ?TIMEOUT};
-handle_call(Request, _From, #state{lastAddTime=LastAddTime} = State) ->
+	{reply, ok, State#state{counter=Counter+1, buffer=[Data|Buffer]}, ?TIMEOUT};
+handle_call(Request, _From, State) ->
 	lager:info("Unknown call Request ~p", [Request]),
-    {reply, ok, State, get_timeout(LastAddTime)}.
+    {reply, ok, State, ?TIMEOUT}.
 
 % Отправка данных по таймауту
 handle_info(timeout, #state{buffer=Buffer} = State) -> 
     {noreply, send_data(State)};
-% События завершения сендеров
-handle_info({'DOWN', Ref, process, Pid, normal}, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) -> 
-	NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
-	NewTimeout = get_timeout(LastAddTime),
-	{noreply, NewState, NewTimeout};
-handle_info({'DOWN', Ref, process, Pid, Reason} = Info, #state{sProcesses=SProcesses, lastAddTime=LastAddTime} = State) ->
-	lager:error("handle_info: ~p State:~p", [Info, State]), %% ошибка в send процессе
-    NewState = State#state{sProcesses=lists:delete({Pid, Ref}, SProcesses)}, 
-	NewTimeout = get_timeout(LastAddTime), 
-	{noreply, NewState, NewTimeout};
 % Закрытие сокета
-handle_info({tcp_closed, Socket}, #state{host=Host, port=Port, lastAddTime=LastAddTime} = State) -> 
+handle_info({tcp_closed, Socket}, #state{host=Host, port=Port} = State) -> 
 	lager:error("tcp_closed", []),
 	gen_tcp:close(Socket),
 	{ok, NewSocket} = get_socket(Host, Port, 0),
 	NewState = State#state{socket=NewSocket}, 
-	NewTimeout = get_timeout(LastAddTime), 
-	{noreply, NewState, NewTimeout};
+	{noreply, NewState, ?TIMEOUT};
 % Входящее tcp сообщение
-handle_info({tcp, _Socket, Msg}, #state{lastAddTime=LastAddTime} = State) -> 
+handle_info({tcp, _Socket, Msg}, State) -> 
 	io:format("TCP: ~p", [Msg]), %% Сообщение из облака
-	NewTimeout = get_timeout(LastAddTime),
-    {noreply, State, NewTimeout};
-handle_info(Info, #state{lastAddTime=LastAddTime} = State) ->
+    {noreply, State, ?TIMEOUT};
+handle_info(Info, State) ->
 	lager:info("Unknown Info ~p", [Info]),
-	NewTimeout = get_timeout(LastAddTime),
-    {noreply, State, NewTimeout}.
+    {noreply, State, ?TIMEOUT}.
 
-terminate(normal, #state{socket=Socket, sProcesses=[]}) -> 
-	gen_tcp:close(Socket),
-    ok;
-terminate(normal, #state{socket=Socket, sProcesses=SProcesses}) -> 
-	timer:sleep(?TERMINATE_TIMEOUT),
-	[kill_incomplete(Proc) || Proc <- SProcesses],
-	gen_tcp:close(Socket),
-	ok;
-terminate(Reason, #state{socket=Socket, sProcesses=SProcesses}) -> 
-	timer:sleep(?TERMINATE_TIMEOUT),
-	[kill_incomplete(Proc) || Proc <- SProcesses],
+terminate(Reason, #state{socket=Socket}) -> 
 	gen_tcp:close(Socket),
 	ok.
 
@@ -127,32 +104,19 @@ get_socket(Host, Port, Attempt) when Attempt<?NUMBER_OF_ATTEMPTS ->
 			get_socket(Host, Port, Attempt+1)
 	end.
 
-% Вычисление таймаута до отправки данных возвращает ?TIMEOUT-'время последнего обновления'
-get_timeout(undefined) -> 
-    infinity;
-get_timeout(LastAdd) -> 
-	case timer:now_diff(erlang:now(), LastAdd) div 1000 of 
-		TimeDiff when 0 < TimeDiff andalso TimeDiff < ?TIMEOUT -> 
-			?TIMEOUT - TimeDiff;
-		_TimeDiff -> 
-			0		
-	end.
-
 send_data(#state{buffer=[]} = State) -> 
     State;
-send_data(#state{socket=Socket, egtsPacketId=PackID, egtsRecordId=RecId, buffer=Buffer, sProcesses=SProcesses} = State) -> 
-	{Pid, Ref} = spawn_monitor(?MODULE, transmit_data, [Socket, PackID, RecId, Buffer]), 
+send_data(#state{socket=Socket, egtsPacketId=PackID, egtsRecordId=RecId, buffer=Buffer} = State) -> 
+	{NewPackID,NewRecId}=transmit_data(Socket, PackID, RecId, Buffer), 
     State#state{
-				counter=1, 
-				lastAddTime = undefined,
+				counter=0, 
 				buffer=[],
-				egtsPacketId = PackID + length(Buffer) band 16#ffff, 
-				egtsRecordId = RecId + lists:flatlength(Buffer), 
-				sProcesses=[{Pid, Ref}|SProcesses]
+				egtsPacketId = NewPackID, 
+				egtsRecordId = NewRecId
 			   }.
 
-transmit_data(_Socket, _PackID, _RecId, []) -> 
-	ok;
+transmit_data(_Socket, PackID, RecId, []) -> 
+	{PackID, RecId};
 transmit_data(Socket, PackID, RecId, [HBuffer|TBuffer]) -> 
 	try form_packet(PackID, RecId, HBuffer) of 
 		{NewPackID, NewRecId, Packet} -> 
@@ -160,7 +124,7 @@ transmit_data(Socket, PackID, RecId, [HBuffer|TBuffer]) ->
 		        ok -> 
 					transmit_data(Socket, NewPackID, NewRecId, TBuffer);
 		        {error,closed} -> 
-					ok
+					{NewPackID, NewRecId}
             end
 	catch 
 		error:ErrType -> 
@@ -170,17 +134,7 @@ transmit_data(Socket, PackID, RecId, [HBuffer|TBuffer]) ->
 	end.
     
 
-kill_incomplete({Pid, Ref}) -> 
-    receive 
-        {'DOWN', Ref, process, Pid, normal} -> ok;
-        {'DOWN', Ref, process, Pid, Reason} -> 
-            error
-    after 
-        0 -> 
-		    exit(Pid, kill),
-            killed
-    end.
-			
+		
 % Form packet
 form_packet(PackID, RecID, Data) ->
 	%%%

@@ -1,12 +1,12 @@
+
 %rnis_data_att_emul_sever
 
 -define(HOST, '10.1.116.46').
--define(TIMEOUT, 1000).  	% Время с последнего добавления данных после которого происходит отправка в облако
--define(BUFF_SIZE, 1000). 	% Размер буфера при достижении которого происходит отправка а облако
--define(TCP_OPTIONS, [binary, {packet,4}]).
+-define(TIMEOUT, 1000).         % Время с последнего добавления данных после которого происходит отправка в облако
+-define(BUFF_SIZE, 1000).       % Размер буфера при достижении которого происходит отправка а облако
+-define(TCP_OPTIONS, [binary, {packet,0}]).
 -define(NUMBER_OF_ATTEMPTS, 3).   % Количество попыток соединения с облаком
 -define(ATTEMPT_TIMEOUT, 1000).   % Таймаут между соединениями с облаком
--define(TERMINATE_TIMEOUT, 3000). % Таймаут на завершение процессов отправки
 
 -define(EGTS_PT_APPDATA, 1).
 -define(EGTS_TELEDATA_SERVICE, 2).
@@ -93,38 +93,36 @@
 %rnis_data_att_emul_load
 -define(RELOAD_TIMEOUT, 2*60*60*1000). % ms, 2 hour
 -define(LOAD_NODE, 'rnis@10.1.116.42').
--define(PREFIX,
-		[
-%%		{{'EGTSTerm',<<>>},{'att_emul_server_4010',4010}},
-%%		{{'AttTaxi',<<>>},{'att_emul_server_4045',4045}},
-		{{'EGTS',<<$A>>},{'att_emul_server_4011',4011}},
-		{{'EGTS',<<$T>>},{'att_emul_server_4012',4012}},
-        {{'EGTS',<<$C>>},{'att_emul_server_4013',4013}},
-        {{'EGTS',<<$D>>},{'att_emul_server_4014',4014}},
-        {{'EGTS',<<$E>>},{'att_emul_server_4015',4015}},
-        {{'EGTS',<<$F>>},{'att_emul_server_4016',4016}},
-        {{'EGTS',<<$G>>},{'att_emul_server_4017',4017}},
-        {{'EGTS',<<$H>>},{'att_emul_server_4018',4018}},
-        {{'EGTS',<<$I>>},{'att_emul_server_4019',4019}},
-        {{'EGTS',<<$J>>},{'att_emul_server_4020',4020}},
-        {{'EGTS',<<$a>>},{'att_emul_server_4021',4021}},
-        {{'EGTS',<<$b>>},{'att_emul_server_4022',4022}},
-        {{'EGTS',<<$c>>},{'att_emul_server_4023',4023}},
-        {{'EGTS',<<$d>>},{'att_emul_server_4024',4024}},
-        {{'EGTS',<<$e>>},{'att_emul_server_4025',4025}},
-        {{'EGTS',<<$f>>},{'att_emul_server_4026',4026}},
-        {{'EGTS',<<$g>>},{'att_emul_server_4027',4027}},
-        {{'EGTS',<<$h>>},{'att_emul_server_4028',4028}},
-        {{'EGTS',<<$k>>},{'att_emul_server_4029',4029}},
-        {{'EGTS',<<$m>>},{'att_emul_server_4030',4030}},
-        {{'EGTS',<<$n>>},{'att_emul_server_4031',4031}},
-        {{'EGTS',<<$p>>},{'att_emul_server_4032',4032}},
-        {{'EGTS',<<$r>>},{'att_emul_server_4033',4033}},
-        {{'EGTS',<<$s>>},{'att_emul_server_4034',4034}},
-        {{'EGTS',<<$t>>},{'att_emul_server_4035',4035}},
-        {{'EGTS',<<$u>>},{'att_emul_server_4036',4036}},
-        {{'EGTS',<<$w>>},{'att_emul_server_4037',4037}},
-        {{'EGTS',<<$x>>},{'att_emul_server_4038',4038}},
-        {{'EGTS',<<$y>>},{'att_emul_server_4039',4039}},
-        {{'EGTS',<<$z>>},{'att_emul_server_4040',4040}}
-		]).
+-define(PREFIX, [
+%%              {{'EGTSTerm',<<>>},{'att_emul_server_4010',4010}},
+%%              {{'AttTaxi',<<>>},{'att_emul_server_4045',4045}},
+       			{{'EGTS',<<$A>>},{'att_emul_server_4011',4011}},
+                {{'EGTS',<<$T>>},{'att_emul_server_4012',4012}},
+		        {{'EGTS',<<$C>>},{'att_emul_server_4013',4013}},
+		        {{'EGTS',<<$D>>},{'att_emul_server_4014',4014}},
+		        {{'EGTS',<<$E>>},{'att_emul_server_4015',4015}},
+		        {{'EGTS',<<$F>>},{'att_emul_server_4016',4016}},
+		        {{'EGTS',<<$G>>},{'att_emul_server_4017',4017}},
+		        {{'EGTS',<<$H>>},{'att_emul_server_4018',4018}},
+		        {{'EGTS',<<$I>>},{'att_emul_server_4019',4019}},
+		        {{'EGTS',<<$J>>},{'att_emul_server_4020',4020}},
+		        {{'EGTS',<<$a>>},{'att_emul_server_4021',4021}},
+		        {{'EGTS',<<$b>>},{'att_emul_server_4022',4022}},
+		        {{'EGTS',<<$c>>},{'att_emul_server_4023',4023}},
+		        {{'EGTS',<<$d>>},{'att_emul_server_4024',4024}},
+		        {{'EGTS',<<$e>>},{'att_emul_server_4025',4025}},
+		        {{'EGTS',<<$f>>},{'att_emul_server_4026',4026}},
+		        {{'EGTS',<<$g>>},{'att_emul_server_4027',4027}},
+		        {{'EGTS',<<$h>>},{'att_emul_server_4028',4028}},
+		        {{'EGTS',<<$k>>},{'att_emul_server_4029',4029}},
+		        {{'EGTS',<<$m>>},{'att_emul_server_4030',4030}},
+		        {{'EGTS',<<$n>>},{'att_emul_server_4031',4031}},
+		        {{'EGTS',<<$p>>},{'att_emul_server_4032',4032}},
+		        {{'EGTS',<<$r>>},{'att_emul_server_4033',4033}},
+		        {{'EGTS',<<$s>>},{'att_emul_server_4034',4034}},
+		        {{'EGTS',<<$t>>},{'att_emul_server_4035',4035}},
+		        {{'EGTS',<<$u>>},{'att_emul_server_4036',4036}},
+		        {{'EGTS',<<$w>>},{'att_emul_server_4037',4037}},
+		        {{'EGTS',<<$x>>},{'att_emul_server_4038',4038}},
+		        {{'EGTS',<<$y>>},{'att_emul_server_4039',4039}},
+		        {{'EGTS',<<$z>>},{'att_emul_server_4040',4040}}]).

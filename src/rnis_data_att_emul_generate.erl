@@ -103,7 +103,8 @@ code_change(_OldVsn, State, _Extra) ->
 
 data_flow(Fun, Atts)->
 	lager:info("Generate Data for ~p Atts", [length(Atts)]),
-	List = [{Server,{ID, system_time(millisec),
+	Time = system_time(millisec),
+	List = [{Server,{ID, Time,
 			 [{<<"lat">>,rand_f(55,56)},{<<"lon">>,rand_f(37,38)},{<<"speed">>,rand_i(0,120)}]}} 
 		   || {ID, Server} <- Atts],
 	lists:foreach(Fun, List).
